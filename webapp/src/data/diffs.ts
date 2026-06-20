@@ -369,6 +369,161 @@ impl Vault {
             .get(&(symbol_short!("POS"), account))
     }
 }`,
-    notes: "#[contracttype] is required for any type stored on-chain or passed as a contract argument. It generates XDR serialization automatically. Soroban uses block ledger().timestamp() (Unix seconds) instead of block.timestamp.",
+    notes: "#[contracttype] is required for any type stored on-chain or passed as a contract argument. It generates XDR serialization automatically. Soroban uses ledger().timestamp() (Unix seconds) instead of block.timestamp.",
+  },
+  // ── New: Inheritance vs Composition ──────────────────────────────────────
+  {
+    id: "inheritance-vs-composition",
+    title: "Inheritance vs Composition",
+    description: "Solidity contract inheritance has no direct equivalent in Soroban — use composition instead.",
+    solidity: `// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+// Base contract
+contract Ownable {
+    address public owner;
+
+    constructor() { owner = msg.sender; }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "not owner");
+        _;
+    }
+}
+
+// Inherits Ownable — gets owner + onlyOwner for free
+contract MyToken is Ownable {
+    uint256 public totalSupply;
+
+    function mint(address to, uint256 amount)
+        external
+        onlyOwner
+    {
+        totalSupply += amount;
+        // ... mint logic
+    }
+}`,
+    soroban: `#![no_std]
+use soroban_sdk::{contract, contractimpl, symbol_short, Address, Env};
+
+// No inheritance in Rust/Soroban.
+// Compose behaviour with a helper module instead.
+mod auth {
+    use soroban_sdk::{symbol_short, Address, Env};
+
+    pub fn only_owner(env: &Env) {
+        let owner: Address = env.storage()
+            .instance()
+            .get(&symbol_short!("OWN"))
+            .expect("not initialized");
+        owner.require_auth();
+    }
+
+    pub fn set_owner(env: &Env, owner: &Address) {
+        env.storage().instance().set(&symbol_short!("OWN"), owner);
+    }
+}
+
+#[contract]
+pub struct MyToken;
+
+#[contractimpl]
+impl MyToken {
+    pub fn initialize(env: Env, owner: Address) {
+        auth::set_owner(&env, &owner);
+        env.storage().instance().set(&symbol_short!("SUPPLY"), &0_i128);
+    }
+
+    pub fn mint(env: Env, _to: Address, amount: i128) {
+        auth::only_owner(&env); // replaces onlyOwner modifier
+
+        let supply: i128 = env.storage()
+            .instance()
+            .get(&symbol_short!("SUPPLY"))
+            .unwrap_or(0);
+
+        env.storage()
+            .instance()
+            .set(&symbol_short!("SUPPLY"), &(supply + amount));
+    }
+}`,
+    notes: "Rust has no inheritance. Extract shared logic into private modules or helper structs. This is actually cleaner — behaviour is explicit, not implicit from a parent chain.",
+  },
+  // ── New: Payable vs native balance ────────────────────────────────────────
+  {
+    id: "payable-vs-token",
+    title: "Payable vs Token Transfers",
+    description: "Solidity's payable / msg.value has no equivalent — Soroban uses explicit token contract calls.",
+    solidity: `// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract Escrow {
+    mapping(address => uint256) public deposits;
+
+    // ETH is sent with the transaction
+    function deposit() external payable {
+        deposits[msg.sender] += msg.value;
+    }
+
+    function withdraw(uint256 amount) external {
+        require(deposits[msg.sender] >= amount);
+        deposits[msg.sender] -= amount;
+        payable(msg.sender).transfer(amount);
+    }
+}`,
+    soroban: `#![no_std]
+use soroban_sdk::{
+    contract, contractimpl, symbol_short, Address, Env,
+    token::Client as TokenClient,
+};
+
+// No native currency in Soroban contracts.
+// Always use explicit token contract cross-contract calls.
+
+#[contract]
+pub struct Escrow;
+
+#[contractimpl]
+impl Escrow {
+    pub fn initialize(env: Env, token: Address) {
+        env.storage().instance().set(&symbol_short!("TKN"), &token);
+    }
+
+    pub fn deposit(env: Env, depositor: Address, amount: i128) {
+        depositor.require_auth();
+
+        let token_addr: Address = env.storage()
+            .instance().get(&symbol_short!("TKN")).unwrap();
+
+        // Explicit cross-contract call to transfer tokens in
+        TokenClient::new(&env, &token_addr)
+            .transfer(&depositor, &env.current_contract_address(), &amount);
+
+        let bal: i128 = env.storage().persistent()
+            .get(&(symbol_short!("BAL"), depositor.clone()))
+            .unwrap_or(0);
+        env.storage().persistent()
+            .set(&(symbol_short!("BAL"), depositor), &(bal + amount));
+    }
+
+    pub fn withdraw(env: Env, depositor: Address, amount: i128) {
+        depositor.require_auth();
+
+        let bal: i128 = env.storage().persistent()
+            .get(&(symbol_short!("BAL"), depositor.clone()))
+            .unwrap_or(0);
+        assert!(bal >= amount, "insufficient balance");
+
+        let token_addr: Address = env.storage()
+            .instance().get(&symbol_short!("TKN")).unwrap();
+
+        env.storage().persistent()
+            .set(&(symbol_short!("BAL"), depositor.clone()), &(bal - amount));
+
+        TokenClient::new(&env, &token_addr)
+            .transfer(&env.current_contract_address(), &depositor, &amount);
+    }
+}`,
+    notes: "There is no msg.value or native ETH equivalent. Every asset transfer in Soroban goes through a token contract. This makes accounting explicit and auditable — no silent ETH sends.",
   },
 ];
