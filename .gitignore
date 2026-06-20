@@ -1,65 +1,35 @@
-# Rust
+# Node
+node_modules/
+.npm
+npm-debug.log*
+
+# Next.js
+webapp/.next/
+webapp/out/
+webapp/.env
+webapp/.env.local
+webapp/.env.*.local
+
+# Rust / Cargo
 target/
-**/*.rs.bk
-*.pdb
-Cargo.lock
-
-# Soroban
-.soroban/
-.soroban-ledger/
-.stellar/
-soroban-ledger*.json
 *.wasm
-*.optimized.wasm
 
-# IDE
+# Coverage
+tarpaulin-report.html
+cobertura.xml
+lcov.info
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
 .vscode/
 .idea/
-*.iml
 *.swp
 *.swo
-*~
-.DS_Store
 
-# Environment
+# Misc
+*.log
 .env
 .env.local
-
-# Testing
-coverage/
-*.profraw
-test_snapshots/
-
-# Build artifacts
-*.so
-*.dylib
-*.dll
-
-# Documentation
-book/book-output/
-docs/_build/
-
-# Temporary files
-tmp/
-temp/
-*.tmp
-
-IMPLEMENTATION_SUMMARY.md
-PROJECT_OVERVIEW.md
-phase 1 issues.md
-phase 2 issues.md
-phase 3 issues.md
-phase 4 issues.md
-phase 5 issues.md
-phase 6 issues.md
-phase 7 issues.md
-phase 8 issues.md
-issue-13-requirement.md
-
-.agent/
-.agents/
-issue.md
-GEMINI.md
-
-.GITHUB_ISSUES_BATCH_REPORT.md
-issues.md
