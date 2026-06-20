@@ -177,7 +177,7 @@ forge/
 ```bash
 # 1. Clone
 git clone https://github.com/Forge-soroban/Forge-soroban.git
-cd Soroban-Cookbook-
+cd Forge-soroban
 
 # 2. Run all tests across the workspace
 cargo test --workspace
@@ -326,7 +326,7 @@ Contributions are welcome — bug fixes, new blueprints, documentation improveme
 **Setup:**
 ```bash
 git clone https://github.com/Forge-soroban/Forge-soroban.git
-cd Soroban-Cookbook-
+cd Forge-soroban
 cargo test --workspace           # verify everything passes
 ```
 
