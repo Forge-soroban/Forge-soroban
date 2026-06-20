@@ -7,6 +7,13 @@ export const metadata: Metadata = {
   title: "Forge — Soroban Smart Contract Lab",
   description:
     "Interactive lab for building Soroban smart contracts on Stellar. Blueprints, diff viewer, gas meter.",
+  keywords: ["Soroban", "Stellar", "smart contracts", "Rust", "DeFi", "blockchain"],
+  authors: [{ name: "Forge-soroban", url: "https://github.com/Forge-soroban" }],
+  openGraph: {
+    title: "Forge — Soroban Smart Contract Lab",
+    description: "40+ production-ready Soroban blueprints, Solidity↔Rust diff viewer, and a live gas meter.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
