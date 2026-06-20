@@ -49,3 +49,22 @@ export const STRENGTH_COLORS = [
   "var(--green)",
   "var(--green)",
 ] as const;
+
+/** Convert bytes to a human-readable string (KB / MB) */
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+/** Debounce a function call */
+export function debounce<T extends (...args: unknown[]) => void>(
+  fn: T,
+  ms: number
+): (...args: Parameters<T>) => void {
+  let timer: ReturnType<typeof setTimeout>;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  };
+}
