@@ -75,7 +75,19 @@ main {
   flex: 1;
 }
 
-/* Scrollbar */
+/* ── Focus visible ────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Selection ────────────────────────────────────────────────────────────── */
+::selection {
+  background: var(--accent-dim);
+  color: var(--text);
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -91,7 +103,14 @@ main {
   background: var(--text-subtle);
 }
 
-/* Code block syntax colors */
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  main {
+    padding: 0;
+  }
+}
+
+/* ── Code syntax colors ───────────────────────────────────────────────────── */
 .token-keyword  { color: #ff7b72; }
 .token-type     { color: #ffa657; }
 .token-string   { color: #a5d6ff; }
