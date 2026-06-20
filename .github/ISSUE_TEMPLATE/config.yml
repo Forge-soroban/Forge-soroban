@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 💬 Community Discord
+    url: https://discord.gg/stellar-dev
+    about: Join the Stellar Discord for general questions and community support
+  - name: 💡 GitHub Discussions
+    url: https://github.com/soroban-cookbook/discussions
+    about: Ask questions, share ideas, and discuss the Soroban Cookbook
+  - name: 📚 Official Documentation
+    url: https://soroban.stellar.org
+    about: Read the official Soroban documentation

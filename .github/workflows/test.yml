@@ -1,0 +1,205 @@
+name: Test and Lint
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  RUST_VERSION: stable
+  # soroban-cli was renamed to stellar-cli at v22.
+  # 22.1.0 is the last release under the soroban protocol 21 era.
+  STELLAR_CLI_VERSION: 22.1.0
+
+jobs:
+  fmt:
+    name: Rust Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+  clippy:
+    name: Clippy Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: clippy
+          target: wasm32-unknown-unknown
+
+      - name: Run Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    # Only test on stable. Rust 1.74 cannot compile transitive deps that use
+    # edition 2024 (e.g. base64ct ≥ 1.8) — so we drop the old matrix entry.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          target: wasm32-unknown-unknown
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Run targeted tests for changed paths
+        if: github.event_name == 'pull_request'
+        run: |
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...${{ github.sha }})
+          for file in $CHANGED_FILES; do
+            if [[ $file == examples/* ]]; then
+              EXAMPLE_DIR=$(echo $file | cut -d/ -f1-3)
+              if [ -f "$EXAMPLE_DIR/Cargo.toml" ]; then
+                echo "Running test for changed example $EXAMPLE_DIR"
+                cd $EXAMPLE_DIR && cargo test && cd -
+              fi
+            fi
+          done
+
+      - name: Run security tests
+        run: cargo test --package security-tests
+
+      - name: Run tests (fallback)
+        if: github.event_name != 'pull_request'
+        run: cargo test --workspace --all-features
+
+  build:
+    name: Build Contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          target: wasm32-unknown-unknown
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-build-
+
+      - name: Install stellar-cli
+        run: cargo install --locked stellar-cli --version ${{ env.STELLAR_CLI_VERSION }}
+
+      - name: Build all contracts
+        run: cargo build --workspace --target wasm32-unknown-unknown --release
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+
+      - name: Run security audit
+        run: |
+          for i in {1..3}; do
+            cargo audit --deny warnings --deny unsound && break
+            if [ $i -lt 3 ]; then
+              echo "Attempt $i failed, retrying in $((i*10)) seconds..."
+              sleep $((i*10))
+            else
+              exit 1
+            fi
+          done
+
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-unknown-unknown
+
+      # Cache the Cargo registry AND the compiled tarpaulin binary together
+      # so repeated runs don't rebuild tarpaulin from source every time.
+      - name: Cache Cargo registry and tarpaulin binary
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin/cargo-tarpaulin
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            target
+          key: ${{ runner.os }}-cargo-coverage-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-coverage-
+
+      - name: Install cargo-tarpaulin
+        run: |
+          if ! command -v cargo-tarpaulin &> /dev/null; then
+            cargo install cargo-tarpaulin --locked
+          fi
+
+      # tarpaulin.toml controls output format (xml + html + lcov),
+      # output directory (coverage/), timeout, and exclusions.
+      - name: Generate coverage
+        run: cargo tarpaulin
+
+      # Keep the full coverage report as a downloadable artifact for
+      # historical review — retained for 90 days.
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 90
+
+      # Upload Cobertura XML to Codecov for badge + historical trend graphs.
+      # CODECOV_TOKEN is required for private repos; harmless for public ones.
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/cobertura.xml
+          flags: workspace
+          name: soroban-cookbook
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}

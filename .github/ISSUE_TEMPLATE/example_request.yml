@@ -1,0 +1,115 @@
+name: Example Request
+description: Request a new example to be added to the cookbook
+title: "[Example Request]: "
+labels: ["example-request", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new example! Please provide as much detail as possible to help us understand what you'd like to see.
+
+  - type: input
+    id: example-name
+    attributes:
+      label: Example Name
+      description: What should this example be called?
+      placeholder: "e.g., Multi-Signature Wallet"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: Which category should this example belong to?
+      options:
+        - Basics
+        - Intermediate
+        - Advanced
+        - DeFi
+        - NFTs
+        - Governance
+        - Tokens
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: Complexity Level
+      description: What level of difficulty is this example?
+      options:
+        - Beginner
+        - Intermediate
+        - Advanced
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What should this example demonstrate? What concepts or patterns should it cover?
+      placeholder: |
+        This example should demonstrate...
+        It would cover topics like...
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Real-World Use Case
+      description: What real-world problem does this solve? How would developers use this?
+      placeholder: |
+        A developer building a DAO would use this to...
+        This pattern is commonly needed when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: similar-examples
+    attributes:
+      label: Similar Examples
+      description: Are there similar contracts or examples in other ecosystems (Ethereum, Solana, etc.)?
+      placeholder: |
+        This is similar to OpenZeppelin's TimelockController...
+        Uniswap V2 has a similar pattern for...
+
+  - type: textarea
+    id: technical-details
+    attributes:
+      label: Technical Details
+      description: Any specific technical requirements, patterns, or approaches you'd like to see?
+      placeholder: |
+        Should use storage pattern X...
+        Must demonstrate authorization with...
+        Could include integration with...
+
+  - type: textarea
+    id: resources
+    attributes:
+      label: Resources and References
+      description: Any helpful links, documentation, or resources?
+      placeholder: |
+        - https://...
+        - Documentation: ...
+        - Related discussion: ...
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other information that would help us build this example?
+      placeholder: Add any other context, diagrams, or screenshots here
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Are you willing to help implement this?
+      description: Would you be interested in contributing this example yourself? We can provide guidance!
+      options:
+        - label: Yes, I'd like to contribute this example
+        - label: Yes, but I need help getting started
+        - label: No, just requesting for someone else to build

@@ -1,0 +1,48 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "shared",
+    "examples/hello-world",
+    "examples/basics/*",
+    "examples/intermediate/*",
+    "examples/advanced/*",
+    "examples/defi/*",
+    "examples/nfts/*",
+    "examples/governance/*",
+    "examples/tokens/*",
+    "tests/integration",
+    "tests/security",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.74"
+
+[workspace.dependencies]
+soroban-sdk = "26.0.0-rc.1"
+base64ct = "=1.6.0"
+
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+debug = 0
+strip = "symbols"
+debug-assertions = false
+panic = "abort"
+codegen-units = 1
+lto = true
+
+[profile.release-with-logs]
+inherits = "release"
+debug-assertions = true
+
+[profile.test]
+# Keep overflow checks and debug assertions active during testing so that
+# arithmetic bugs surface as panics rather than silent wrapping.
+opt-level = 3
+debug = true
+overflow-checks = true
+debug-assertions = true
+strip = "symbols"
