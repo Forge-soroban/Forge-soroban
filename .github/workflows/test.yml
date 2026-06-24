@@ -187,7 +187,7 @@ jobs:
       # historical review — retained for 90 days.
       - name: Upload coverage artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report
           path: coverage/
